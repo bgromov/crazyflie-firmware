@@ -507,9 +507,9 @@ static void brightnessEffect(uint8_t buffer[][3], bool reset)
 static void setHeadlightsOn(bool on)
 {
   if (on)
-    GPIO_SetBits(GPIOB, GPIO_Pin_4);
+    GPIO_SetBits(GPIOA, GPIO_Pin_3);
   else
-    GPIO_ResetBits(GPIOB, GPIO_Pin_4);
+    GPIO_ResetBits(GPIOA, GPIO_Pin_3);
 }
 
 
@@ -768,8 +768,8 @@ static void ledring12Init(DeckInfo *info)
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-  GPIO_Init(GPIOB, &GPIO_InitStructure);
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
 
   isInit = true;
 
@@ -797,8 +797,8 @@ static const DeckDriver ledring12_deck = {
   .pid = 0x01,
   .name = "bcLedRing",
 
-  .usedPeriph = DECK_USING_TIMER3,
-  .usedGpio = DECK_USING_IO_2 | DECK_USING_IO_3,
+  .usedPeriph = DECK_USING_TIMER5,
+  .usedGpio = DECK_USING_TX2 | DECK_USING_RX2,
 
   .init = ledring12Init,
 };
