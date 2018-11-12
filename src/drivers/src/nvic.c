@@ -210,7 +210,7 @@ void DONT_DISCARD DebugMon_Handler(void)
 {
 }
 
-void DONT_DISCARD DMA1_Stream5_IRQHandler(void)
+void DONT_DISCARD DMA1_Stream7_IRQHandler(void)
 {
   ws2812DmaIsr();
 }

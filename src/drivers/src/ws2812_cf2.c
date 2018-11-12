@@ -66,24 +66,24 @@ void ws2812Init(void)
 {
 	uint16_t PrescalerValue;
 
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
-	/* GPIOA Configuration: TIM5 Channel 4 as alternate function push-pull */
-  // Configure the GPIO PA3 for the timer output
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+	/* GPIOA Configuration: TIM4 Channel 4 as alternate function push-pull */
+  // Configure the GPIO PB8 for the timer output
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
 
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
   GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
   //Map timer to alternate functions
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_TIM5);
+  GPIO_PinAFConfig(GPIOB, GPIO_PinSource8, GPIO_AF_TIM4);
 
 	/* Compute the prescaler value */
 	PrescalerValue = 0;
@@ -93,28 +93,28 @@ void ws2812Init(void)
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
   TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
 
 	/* PWM1 Mode configuration: Channel1 */
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
   TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = 0;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OC3Init(TIM5, &TIM_OCInitStructure);
+	TIM_OC3Init(TIM4, &TIM_OCInitStructure);
 
-//  TIM_Cmd(TIM5, ENABLE);                      // Go!!!
-	TIM_OC3PreloadConfig(TIM5, TIM_OCPreload_Enable);
-	TIM_CtrlPWMOutputs(TIM5, ENABLE);           // enable Timer 5
+//  TIM_Cmd(TIM4, ENABLE);                      // Go!!!
+	TIM_OC3PreloadConfig(TIM4, TIM_OCPreload_Enable);
+	TIM_CtrlPWMOutputs(TIM4, ENABLE);           // enable Timer 4
 
 	/* configure DMA */
 	/* DMA clock enable */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
 
 	/* DMA1 Channel2 Config */
-	DMA_DeInit(DMA1_Stream5);
+	DMA_DeInit(DMA1_Stream7);
 
   // USART TX DMA Channel Config
-  DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&TIM5->CCR3;
+  DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&TIM4->CCR3;
   DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)led_dma.buffer;    // this is the buffer memory
   DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
   DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
@@ -128,20 +128,20 @@ void ws2812Init(void)
   DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
   DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;
   DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull ;
-  DMA_InitStructure.DMA_Channel = DMA_Channel_5;
-	DMA_Init(DMA1_Stream5, &DMA_InitStructure);
+  DMA_InitStructure.DMA_Channel = DMA_Channel_2;
+	DMA_Init(DMA1_Stream7, &DMA_InitStructure);
 
-  NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream5_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream7_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_LOW_PRI;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 
-  DMA_ITConfig(DMA1_Stream5, DMA_IT_TC, ENABLE);
-  DMA_ITConfig(DMA1_Stream5, DMA_IT_HT, ENABLE);
+  DMA_ITConfig(DMA1_Stream7, DMA_IT_TC, ENABLE);
+  DMA_ITConfig(DMA1_Stream7, DMA_IT_HT, ENABLE);
 
-	/* TIM5 CC3 DMA Request enable */
-	TIM_DMACmd(TIM5, TIM_DMA_CC3, ENABLE);
+	/* TIM4 CC3 DMA Request enable */
+	TIM_DMACmd(TIM4, TIM_DMA_CC3, ENABLE);
 
 	vSemaphoreCreateBinary(allLedDone);
 
@@ -196,9 +196,9 @@ void ws2812Send(uint8_t (*color)[3], uint16_t len)
             bzero(led_dma.end+(24*i), sizeof(led_dma.end));
     }
 
-	DMA1_Stream5->NDTR = sizeof(led_dma.buffer) / sizeof(led_dma.buffer[0]); // load number of bytes to be transferred
-	DMA_Cmd(DMA1_Stream5, ENABLE); 			// enable DMA channel 2
-	TIM_Cmd(TIM5, ENABLE);                      // Go!!!
+	DMA1_Stream7->NDTR = sizeof(led_dma.buffer) / sizeof(led_dma.buffer[0]); // load number of bytes to be transferred
+	DMA_Cmd(DMA1_Stream7, ENABLE); 			// enable DMA channel 2
+	TIM_Cmd(TIM4, ENABLE);                      // Go!!!
 }
 
 void ws2812DmaIsr(void)
@@ -209,19 +209,19 @@ void ws2812DmaIsr(void)
 
     if (total_led == 0)
     {
-      TIM_Cmd(TIM5, DISABLE);
-    	DMA_Cmd(DMA1_Stream5, DISABLE);
+      TIM_Cmd(TIM4, DISABLE);
+    	DMA_Cmd(DMA1_Stream7, DISABLE);
     }
 
-    if (DMA_GetITStatus(DMA1_Stream5, DMA_IT_HTIF5))
+    if (DMA_GetITStatus(DMA1_Stream7, DMA_IT_HTIF7))
     {
-      DMA_ClearITPendingBit(DMA1_Stream5, DMA_IT_HTIF5);
+      DMA_ClearITPendingBit(DMA1_Stream7, DMA_IT_HTIF7);
       buffer = led_dma.begin;
     }
 
-    if (DMA_GetITStatus(DMA1_Stream5, DMA_IT_TCIF5))
+    if (DMA_GetITStatus(DMA1_Stream7, DMA_IT_TCIF7))
     {
-      DMA_ClearITPendingBit(DMA1_Stream5, DMA_IT_TCIF5);
+      DMA_ClearITPendingBit(DMA1_Stream7, DMA_IT_TCIF7);
       buffer = led_dma.end;
     }
 
@@ -235,8 +235,8 @@ void ws2812DmaIsr(void)
     if (current_led >= total_led+2) {
       xSemaphoreGiveFromISR(allLedDone, &xHigherPriorityTaskWoken);
 
-	    TIM_Cmd(TIM5, DISABLE); 					// disable Timer 5
-	    DMA_Cmd(DMA1_Stream5, DISABLE); 			// disable DMA stream4
+	    TIM_Cmd(TIM4, DISABLE); 					// disable Timer 4
+	    DMA_Cmd(DMA1_Stream7, DISABLE); 			// disable DMA stream4
 
 	    total_led = 0;
     }
